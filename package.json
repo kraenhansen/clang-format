@@ -12,6 +12,10 @@
     "git-clang-format": "bin/git-clang-format",
     "check-clang-format": "bin/check-clang-format.js"
   },
+  "files": [
+    "index.js",
+    "bin"
+  ],
   "scripts": {
     "test": "bash ./test.sh"
   },
