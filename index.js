@@ -172,20 +172,15 @@ function getNativeBinary() {
   const arch = os.arch();
   if (platform === 'win32') {
     nativeBinary = `${__dirname}/bin/win32/clang-format.exe`;
+  } else if (platform === 'darwin' && (arch === 'arm64' || arch === 'x64')) {
+    // Let arm64 and x64 macOS use a universal binary
+    nativeBinary = `${__dirname}/bin/darwin-arm64-x86_64/clang-format`;
   } else {
-    nativeBinary = `${__dirname}/bin/${platform}_${arch}/clang-format`;
+    nativeBinary = `${__dirname}/bin/${platform}-${arch}/clang-format`;
   }
 
   if (fs.existsSync(nativeBinary)) {
     return nativeBinary;
-  }
-
-  // Let arm64 macOS fall back to x64
-  if (platform === 'darwin' && arch === 'arm64') {
-    nativeBinary = `${__dirname}/bin/darwin_x64/clang-format`;
-    if (fs.existsSync(nativeBinary)) {
-      return nativeBinary;
-    }
   }
   const message = 'This module doesn\'t bundle the clang-format executable for your platform. ' +
       `(${platform}_${arch})\n` +

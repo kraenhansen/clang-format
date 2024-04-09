@@ -1,0 +1,203 @@
+name: Build clang-format
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  LLVM_URL: https://github.com/llvm/llvm-project.git
+  LLVM_TAG: llvmorg-18.1.3
+
+jobs:
+  build-darwin:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+    - run: npm ci
+    - name: Install the Ninja build-tool
+      uses: seanmiddleditch/gha-setup-ninja@v4
+    - name: Shallow clone llvm
+      run: git clone --depth 1 --branch $LLVM_TAG $LLVM_URL ./llvm
+
+    # Darwin arm64 + x86_64 universal binary
+
+    - name: Configure Cmake project
+      run: |
+        cmake -G Ninja -B ./build -S ./llvm/llvm \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DLLVM_ENABLE_PROJECTS=clang \
+            -DCMAKE_OSX_ARCHITECTURES='arm64;x86_64'
+    - name: Build clang-format
+      working-directory: build
+      run: ninja clang-format
+    - name: Copy clang-format binary
+      run: |
+        mkdir -p ./bin/darwin-arm64-x86_64;
+        cp ./build/bin/clang-format ./bin/darwin-arm64-x86_64
+    - name: Upload clang-format binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: darwin-arm64-x86_64
+        path: ./bin/darwin-arm64-x86_64/clang-format
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+    - run: npm ci
+    - name: Install the Ninja build-tool
+      uses: seanmiddleditch/gha-setup-ninja@v4
+    - name: Shallow clone llvm
+      run: git clone --depth 1 --branch $LLVM_TAG $LLVM_URL ./llvm
+
+    # Linux x86_64
+
+    - name: Configure cmake project
+      run: |
+        cmake -G Ninja -B ./build -S ./llvm/llvm \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DLLVM_ENABLE_PROJECTS=clang \
+            -DLLVM_BUILD_STATIC=true
+    - name: Build clang-format
+      working-directory: build
+      run: ninja clang-format
+    - name: Copy clang-format binary
+      run: |
+        mkdir -p ./bin/linux-x64;
+        cp ./build/bin/clang-format ./bin/linux-x64
+    - name: Upload clang-format binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-x64
+        path: ./bin/linux-x64/clang-format
+
+    # Cross-compiling for Linux aarch64
+
+    # - name: Configure cmake project (aarch64 Linux)
+    #   # Note that via "LLVM_NATIVE_TOOL_DIR" we're using the native tools we built ealier
+    #   run: |
+    #     cmake -G Ninja -B ./build-aarch64 -S ./llvm/llvm \
+    #         -DCMAKE_BUILD_TYPE=MinSizeRel \
+    #         -DLLVM_ENABLE_PROJECTS=clang \
+    #         -DLLVM_NATIVE_TOOL_DIR=../build/bin \
+    #         -DLLVM_TARGET_ARCH=AArch64 \
+    #         -DLLVM_TARGETS_TO_BUILD=AArch64 \
+    #         -DLLVM_DEFAULT_TARGET_TRIPLE=aarch64-unknown-linux-gnu \
+    #         -DLLVM_BUILD_STATIC=true \
+    #         -DLLVM_ENABLE_PIC=False
+    # - name: Build clang-format (aarch64 Linux)
+    #   working-directory: build-aarch64
+    #   run: ninja clang-format
+    # - name: Copy clang-format binary (aarch64 Linux)
+    #   run: |
+    #     mkdir -p ./bin/aarch64-linux;
+    #     cp ./build-aarch64/bin/clang-format ./bin/aarch64-linux
+    # - name: Upload clang-format binary (aarch64 Linux)
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: aarch64-linux
+    #     path: ./bin/aarch64-linux/clang-format
+
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+    - run: npm ci
+    - name: Install the Ninja build-tool
+      uses: seanmiddleditch/gha-setup-ninja@v4
+    - name: Shallow clone llvm
+      run: git clone --depth 1 --branch $LLVM_TAG $LLVM_URL ./llvm
+
+    # Windows x86_64
+
+    - name: Configure cmake project
+      run: |
+        cmake -G Ninja -B ./build-aarch64 -S ./llvm/llvm \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DLLVM_ENABLE_PROJECTS=clang
+    - name: Build clang-format
+      working-directory: build
+      run: ninja clang-format
+    - name: Copy clang-format binary
+      run: |
+        mkdir -p ./bin/win32;
+        cp ./build/bin/clang-format.exe ./bin/win32
+    - name: Upload clang-format binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: win32
+        path: ./bin/win32/clang-format.exe
+
+    # Cross-compiling for Windows aarch64
+
+    # - name: Configure cmake project (aarch64 Windows)
+    #   # Note that via "LLVM_NATIVE_TOOL_DIR" we're using the native tools we built ealier
+    #   run: |
+    #     cmake -G Ninja -B ./build-aarch64 -S ./llvm/llvm \
+    #         -DCMAKE_BUILD_TYPE=MinSizeRel \
+    #         -DLLVM_ENABLE_PROJECTS=clang \
+    #         -DLLVM_TARGET_ARCH=AArch64 \
+    #         -DLLVM_TARGETS_TO_BUILD=AArch64 \
+    #         -DLLVM_DEFAULT_TARGET_TRIPLE=aarch64-pc-windows-msvc \
+    #         -DLLVM_ENABLE_PIC=False \
+    #         -DLLVM_NATIVE_TOOL_DIR=../build/bin
+    # - name: Build clang-format (aarch64 Windows)
+    #   working-directory: build
+    #   run: ninja clang-format
+    # - name: Copy clang-format binary (aarch64 Windows)
+    #   run: |
+    #     mkdir -p ./bin/win32-aarch64;
+    #     cp ./build-aarch64/bin/clang-format.exe ./bin/win32-aarch64
+    # - name: Upload clang-format binary (aarch64 Windows)
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: win32-aarch64
+    #     path: ./bin/win32-aarch64/clang-format.exe
+
+  package:
+    runs-on: ubuntu-latest
+    needs: [build-darwin, build-linux, build-windows]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+    - run: npm ci
+    - uses: actions/download-artifact@v4
+      with:
+        path: ./bin
+    - run: ls -la ./bin
+    - run: npm pack
+    - name: Upload clang-format package
+      uses: actions/upload-artifact@v4
+      with:
+        name: package
+        path: ./clang-format-*.tgz
