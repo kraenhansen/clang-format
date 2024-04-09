@@ -136,7 +136,7 @@ jobs:
 
     - name: Configure cmake project
       run: |
-        cmake -G Ninja -B ./build-aarch64 -S ./llvm/llvm \
+        cmake -G Ninja -B ./build -S ./llvm/llvm \
             -DCMAKE_BUILD_TYPE=MinSizeRel \
             -DLLVM_ENABLE_PROJECTS=clang
     - name: Build clang-format

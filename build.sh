@@ -20,7 +20,7 @@ cmake -G Ninja \
     -DLLVM_ENABLE_PROJECTS=clang \
     -DLLVM_TARGET_ARCH=x86_64 \
     -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-apple-darwin \
-    -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+    -DCMAKE_OSX_ARCHITECTURES='arm64;x86_64' \
     ../llvm
 ninja clang-format
 popd
