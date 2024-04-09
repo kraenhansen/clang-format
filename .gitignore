@@ -26,3 +26,8 @@ node_modules
 
 # Users Environment Variables
 .lock-wscript
+
+# Binaries
+bin/darwin-*/*
+bin/linux-*/*
+bin/win32/*
